@@ -5,7 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/DailyTasks";
 import Stake from "./pages/Stake";
 import AI from "./components/AIAssistant";
-import Earn from "./pages/PowerOn";
+import PowerOn from "./pages/PowerOn";
 import { useTheme } from "./context/ThemeContext";
 
 const AnimatedRoutes = () => {
@@ -14,11 +14,11 @@ const AnimatedRoutes = () => {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<PowerOn />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/stake" element={<Stake />} />
         <Route path="/ai" element={<AI />} />
-        <Route path="/earn" element={<Earn />} />
       </Routes>
     </AnimatePresence>
   );
