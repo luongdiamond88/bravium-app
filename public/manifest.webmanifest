@@ -2,24 +2,27 @@
   "name": "Bravium AI",
   "short_name": "Bravium",
   "description": "AI Robot • Proof of Earn",
-  "start_url": "./",
-  "scope": "./",
+  "id": "ai.bravium.app",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#000a1f",
-  "theme_color": "#000a1f",
+  "theme_color": "#00ffc6",
+  "lang": "en",
   "icons": [
     {
-      "src": "pwa-192.png",
+      "src": "/pwa-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "pwa-512.png",
+      "src": "/pwa-512.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "pwa-512-maskable.png",
+      "src": "/pwa-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
