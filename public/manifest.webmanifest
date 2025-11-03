@@ -5,6 +5,7 @@
   "id": "ai.bravium.app",
   "start_url": "/",
   "scope": "/",
+  "orientation": "portrait",
   "display": "standalone",
   "background_color": "#000a1f",
   "theme_color": "#00ffc6",
