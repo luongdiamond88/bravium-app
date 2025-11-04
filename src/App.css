@@ -5,11 +5,6 @@
   text-align: center;
 }
 
-#proof-card {
-  transform-origin: center;
-  transform: scale(calc(min(100vw / 600, 100vh / 600)));
-}
-
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -44,4 +39,9 @@
 
 .read-the-docs {
   color: #888;
+}
+
+#proof-card {
+  transform-origin: center;
+  transform: scale(calc(min(100vw / 600, 100vh / 600)));
 }
