@@ -5,6 +5,11 @@
   text-align: center;
 }
 
+#proof-card {
+  transform-origin: center;
+  transform: scale(calc(min(100vw / 600, 100vh / 600)));
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
