@@ -49,13 +49,14 @@ export default function ProofCard({
   return (
     <div
       id="proof-card"
-      className="relative w-[380px] h-[420px] md:w-[500px] md:h-[500px] rounded-2xl overflow-hidden flex flex-col items-center justify-center scale-[0.95]"
+      style={{ maxHeight: "90vh" }}
+      className="relative w-[75vw] max-w-[380px] aspect-square rounded-3xl overflow-hidden flex flex-col items-center justify-center mx-auto scale-[0.7]"
       style={{
         background,
         boxShadow: "0 0 60px rgba(164,244,217,0.2)",
       }}
     >
-      <h1 className="text-4xl md:text-5xl font-bold text-[#a4f4d9] mb-1">
+      <h1 className="text-2xl md:text-4xl font-bold text-[#a4f4d9] mb-2">
         +{safeAmount} {token}
       </h1>
       <p className="text-[#f9d67a] text-2xl font-semibold mb-3">
@@ -67,10 +68,10 @@ export default function ProofCard({
         alt="Bravium"
         className="w-32 opacity-90 mb-4"
       />
-      <div className="absolute bottom-6 left-6 flex items-center gap-3">
+      <div className="absolute bottom-4 left-4 flex items-center gap-2">
         <QRCodeSVG
           value={refLink}
-          size={60}
+          size={40}
           bgColor="transparent"
           fgColor="#a4f4d9"
         />

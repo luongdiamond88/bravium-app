@@ -114,7 +114,8 @@ export default function ProofCardETH({
   return (
     <div
       id="proof-card"
-      className="relative w-[380px] h-[420px] md:w-[500px] md:h-[500px] rounded-2xl overflow-hidden flex flex-col items-center justify-center scale-[0.95]"
+      style={{ maxHeight: "90vh" }}
+      className="relative w-[75vw] max-w-[380px] aspect-square rounded-3xl overflow-hidden flex flex-col items-center justify-center mx-auto scale-[0.7]"
       style={{
         background: p.bg,
         boxShadow: p.shadow,
@@ -144,7 +145,7 @@ export default function ProofCardETH({
 
       {/* MAIN NUMBERS */}
       <h1
-        className="text-4xl md:text-5xl font-extrabold mb-1"
+        className="text-2xl md:text-3xl font-extrabold mb-2"
         style={{
           color: p.primary,
           textShadow: "0 0 14px rgba(126,224,255,0.35)",
@@ -175,10 +176,10 @@ export default function ProofCardETH({
       />
 
       {/* QR + Link */}
-      <div className="absolute bottom-6 left-6 flex items-center gap-3">
+      <div className="absolute bottom-4 left-4 flex items-center gap-2">
         <QRCodeSVG
           value={refLink}
-          size={60}
+          size={40}
           bgColor="transparent"
           fgColor={p.qr}
         />
