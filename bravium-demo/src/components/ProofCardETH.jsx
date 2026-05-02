@@ -13,7 +13,8 @@ export default function ProofCardETH({
 }) {
   // ---- Parse amount ----
   const amountNum = Number.parseFloat(String(amount).replace(/[^\d.]/g, ""));
-  const safeAmount = Number.isFinite(amountNum) && amountNum > 0 ? amountNum : 0;
+  const safeAmount =
+    Number.isFinite(amountNum) && amountNum > 0 ? amountNum : 0;
 
   // ---- ETH price realtime ----
   const { price: ethPrice, loading } = useEthPrice();
@@ -113,7 +114,8 @@ export default function ProofCardETH({
   return (
     <div
       id="proof-card"
-      className="relative w-[600px] h-[600px] rounded-3xl overflow-hidden flex flex-col items-center justify-center"
+      style={{ maxHeight: "90vh" }}
+      className="relative w-[75vw] max-w-[380px] aspect-square rounded-3xl overflow-hidden flex flex-col items-center justify-center mx-auto scale-[0.7]"
       style={{
         background: p.bg,
         boxShadow: p.shadow,
@@ -132,9 +134,7 @@ export default function ProofCardETH({
 
       {/* LEFT BADGE: Rank / Node */}
       <div className="absolute top-5 left-5 flex gap-2">
-        <div style={badgeStyle}>
-          {finalRank ? `${finalRank} NODE` : "NODE"}
-        </div>
+        <div style={badgeStyle}>{finalRank ? `${finalRank} NODE` : "NODE"}</div>
         <div style={{ ...badgeStyle, minWidth: 70 }}>#{nodeId}</div>
       </div>
 
@@ -145,7 +145,7 @@ export default function ProofCardETH({
 
       {/* MAIN NUMBERS */}
       <h1
-        className="text-6xl font-extrabold mb-1"
+        className="text-2xl md:text-3xl font-extrabold mb-2"
         style={{
           color: p.primary,
           textShadow: "0 0 14px rgba(126,224,255,0.35)",
@@ -176,10 +176,10 @@ export default function ProofCardETH({
       />
 
       {/* QR + Link */}
-      <div className="absolute bottom-10 left-10 flex items-center gap-4">
+      <div className="absolute bottom-4 left-4 flex items-center gap-2">
         <QRCodeSVG
           value={refLink}
-          size={80}
+          size={40}
           bgColor="transparent"
           fgColor={p.qr}
         />

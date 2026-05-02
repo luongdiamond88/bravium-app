@@ -12,7 +12,8 @@ export default function ProofCard({
   // 1) Rút số tuyệt đối từ amount, kể cả khi amount là "6.000 BRC" hay "6,000"
   const raw = String(amount).replace(/[^\d.]/g, ""); // chỉ giữ số & dấu .
   const amountNum = Number.parseFloat(raw);
-  const safeAmount = Number.isFinite(amountNum) && amountNum > 0 ? amountNum : 0;
+  const safeAmount =
+    Number.isFinite(amountNum) && amountNum > 0 ? amountNum : 0;
 
   // 2) Giá BRC/USDT: ưu tiên prop nếu là số dương, còn lại dùng 0.08 cứng
   const priceNum = Number(brcPrice);
@@ -25,7 +26,16 @@ export default function ProofCard({
       : (safeAmount * price).toFixed(2);
 
   // Debug một lần là biết ngay
-  console.log("💰 ProofCard(BRC) → amount:", amount, "| parsed:", safeAmount, "| price:", price, "| usdt:", valueInUSDT);
+  console.log(
+    "💰 ProofCard(BRC) → amount:",
+    amount,
+    "| parsed:",
+    safeAmount,
+    "| price:",
+    price,
+    "| usdt:",
+    valueInUSDT,
+  );
 
   const refLink = `https://bravium.tech/invite?ref=${address}`;
 
@@ -39,13 +49,14 @@ export default function ProofCard({
   return (
     <div
       id="proof-card"
-      className="relative w-[600px] h-[600px] rounded-3xl overflow-hidden flex flex-col items-center justify-center"
+      style={{ maxHeight: "90vh" }}
+      className="relative w-[75vw] max-w-[380px] aspect-square rounded-3xl overflow-hidden flex flex-col items-center justify-center mx-auto scale-[0.7]"
       style={{
         background,
         boxShadow: "0 0 60px rgba(164,244,217,0.2)",
       }}
     >
-      <h1 className="text-6xl font-bold text-[#a4f4d9] mb-1">
+      <h1 className="text-2xl md:text-4xl font-bold text-[#a4f4d9] mb-2">
         +{safeAmount} {token}
       </h1>
       <p className="text-[#f9d67a] text-2xl font-semibold mb-3">
@@ -57,8 +68,13 @@ export default function ProofCard({
         alt="Bravium"
         className="w-32 opacity-90 mb-4"
       />
-      <div className="absolute bottom-10 left-10 flex items-center gap-4">
-        <QRCodeSVG value={refLink} size={80} bgColor="transparent" fgColor="#a4f4d9" />
+      <div className="absolute bottom-4 left-4 flex items-center gap-2">
+        <QRCodeSVG
+          value={refLink}
+          size={40}
+          bgColor="transparent"
+          fgColor="#a4f4d9"
+        />
         <div>
           <p className="text-[#bdeee0] text-sm">Proof of Earn — {username}</p>
           <p className="text-[#7ceee0] text-xs">{refLink}</p>
