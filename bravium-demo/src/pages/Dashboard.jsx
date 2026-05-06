@@ -22,6 +22,9 @@ import {
   hasFirstHistoryRecordConfirmedOnce,
   markFirstHistoryRecordConfirmedOnce,
   logFirstHistoryRecord,
+  logPhysicalConfirmRequested,
+  logPhysicalConfirmReceived,
+  logPhysicalConfirmFailed,
 } from "../config/checkpoints";
 
 function speak(text) {
@@ -64,6 +67,7 @@ export default function Dashboard() {
 
   const canPause = isEarning || isAiPaused;
   const canManualOverride = isEarning;
+  const [waitingPhysicalConfirm, setWaitingPhysicalConfirm] = useState(false);
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -132,6 +136,78 @@ export default function Dashboard() {
     hasDismissedFirstMiningCard,
   ]);
 
+  useEffect(() => {
+    window.__BRAVIUM_WAITING_PHYSICAL_CONFIRM__ = waitingPhysicalConfirm;
+
+    try {
+      window.AndroidBridge?.setWaitingPhysicalConfirm?.(waitingPhysicalConfirm);
+    } catch (error) {
+      // ignore bridge sync failure
+    }
+  }, [waitingPhysicalConfirm]);
+
+  useEffect(() => {
+    const handlePhysicalConfirm = (event) => {
+      if (!waitingPhysicalConfirm || !showFirstHistoryCard) return;
+
+      try {
+        logPhysicalConfirmReceived(
+          {
+            page: "dashboard",
+            checkpoint: "first_history_record",
+            detail: event?.detail || null,
+            brc: Number(brc.toFixed(3)),
+          },
+          "dashboard",
+        );
+
+        confirmFirstHistoryRecordCheckpoint("physical_button");
+      } catch (error) {
+        logPhysicalConfirmFailed(
+          {
+            page: "dashboard",
+            checkpoint: "first_history_record",
+            reason: error?.message || "confirm_handler_failed",
+          },
+          "dashboard",
+        );
+      }
+    };
+
+    const handlePhysicalConfirmFailed = (event) => {
+      if (!waitingPhysicalConfirm) return;
+
+      logPhysicalConfirmFailed(
+        {
+          page: "dashboard",
+          checkpoint: "first_history_record",
+          reason: event?.detail?.reason || "native_wrapper_failed",
+        },
+        "dashboard",
+      );
+    };
+
+    window.addEventListener(
+      "bravium:physical-power-confirm",
+      handlePhysicalConfirm,
+    );
+    window.addEventListener(
+      "bravium:physical-power-failed",
+      handlePhysicalConfirmFailed,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "bravium:physical-power-confirm",
+        handlePhysicalConfirm,
+      );
+      window.removeEventListener(
+        "bravium:physical-power-failed",
+        handlePhysicalConfirmFailed,
+      );
+    };
+  }, [waitingPhysicalConfirm, showFirstHistoryCard, brc]);
+
   const handleStart = () => {
     setIsAiPaused(false);
     setIsEarning(true);
@@ -176,7 +252,18 @@ export default function Dashboard() {
       return;
     }
 
+    setWaitingPhysicalConfirm(true);
     setShowFirstHistoryCard(true);
+
+    logPhysicalConfirmRequested(
+      {
+        page: "dashboard",
+        checkpoint: "first_history_record",
+        action: "earn_more_brc",
+        brc: Number(brc.toFixed(3)),
+      },
+      "dashboard",
+    );
   };
 
   const closeCheckpoint = () => {
@@ -261,7 +348,9 @@ export default function Dashboard() {
     setHasDismissedFirstMiningCard(true);
   };
 
-  const confirmFirstHistoryRecordCheckpoint = () => {
+  const confirmFirstHistoryRecordCheckpoint = (
+    confirmationSource = "physical_button",
+  ) => {
     if (!hasConfirmedFirstHistoryRecordOnce) {
       markFirstHistoryRecordConfirmedOnce();
       logFirstHistoryRecord(
@@ -269,6 +358,7 @@ export default function Dashboard() {
           page: "dashboard",
           action: "earn_more_brc",
           brc: Number(brc.toFixed(3)),
+          confirmationSource,
         },
         "dashboard",
       );
@@ -276,11 +366,13 @@ export default function Dashboard() {
     }
 
     setShowFirstHistoryCard(false);
+    setWaitingPhysicalConfirm(false);
     runEarnMoreBrcFlow();
   };
 
   const cancelFirstHistoryRecordCheckpoint = () => {
     setShowFirstHistoryCard(false);
+    setWaitingPhysicalConfirm(false);
   };
 
   return (
@@ -503,6 +595,10 @@ export default function Dashboard() {
               BRC and write this checkpoint to the event log.
             </p>
 
+            <div className="mb-4 rounded-xl border border-yellow-500/20 bg-black/30 px-4 py-3 text-sm text-zinc-300">
+              Press the physical Power button on the robot to confirm this step.
+            </div>
+
             <div className="flex gap-3">
               <button
                 onClick={cancelFirstHistoryRecordCheckpoint}
@@ -512,10 +608,10 @@ export default function Dashboard() {
               </button>
 
               <button
-                onClick={confirmFirstHistoryRecordCheckpoint}
-                className="flex-1 rounded-xl bg-[#a4f4d9] px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90"
+                disabled
+                className="flex-1 rounded-xl bg-zinc-800 px-4 py-3 text-sm font-semibold text-zinc-500 cursor-not-allowed"
               >
-                Continue
+                Awaiting Physical Power Button
               </button>
             </div>
           </div>

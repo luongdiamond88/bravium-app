@@ -11,6 +11,31 @@ export const EVENT_TYPES = {
   FIRST_ECONOMIC_CYCLE_CONFIRMED: "first_economic_cycle_confirmed",
   AI_PAUSED: "ai_paused",
   MANUAL_OVERRIDE_TRIGGERED: "manual_override_triggered",
+
+  // AI
+  AI_JOB_CREATED: "ai_job_created",
+  AI_ANALYSIS_STARTED: "ai_analysis_started",
+  AI_ANALYSIS_COMPLETED: "ai_analysis_completed",
+  AI_REPLY_GENERATED: "ai_reply_generated",
+  AI_ALERT_GENERATED: "ai_alert_generated",
+
+  // Control
+  USER_APPROVAL_REQUESTED: "user_approval_requested",
+  USER_APPROVED: "user_approved",
+  USER_REJECTED: "user_rejected",
+  ACTION_BLOCKED: "action_blocked",
+  ACTION_EXECUTED: "action_executed",
+
+  // Finance
+  EXPENSE_PARSED: "expense_parsed",
+  EXPENSE_SAVED: "expense_saved",
+  REMINDER_SCHEDULED: "reminder_scheduled",
+  BUDGET_ALERT_GENERATED: "budget_alert_generated",
+
+  // Physical / device
+  PHYSICAL_CONFIRM_REQUESTED: "physical_confirm_requested",
+  PHYSICAL_CONFIRM_RECEIVED: "physical_confirm_received",
+  PHYSICAL_CONFIRM_FAILED: "physical_confirm_failed",
 };
 
 const defaultState = {
@@ -27,7 +52,7 @@ const defaultState = {
     yieldUpdateConfirmedOnce: false,
     claimConfirmedOnce: false,
     firstEconomicCycleCompletedOnce: false,
-    firstHistoryRecordConfirmedOnce: false,
+    firstHistoryRecordConfirmedOnce: false, // backward compatibility only
   },
   session: {
     sessionId: null,
@@ -213,8 +238,9 @@ export function triggerManualOverride(payload = {}, source = "system") {
 }
 
 /* =========================
-   Event log helpers
+   Event log helpers - checkpoint layer
 ========================= */
+
 export function logFirstPowerOn(payload = {}, source = "powerOn") {
   return appendCheckpointEvent(
     EVENT_TYPES.FIRST_POWER_ON_CONFIRMED,
@@ -266,6 +292,110 @@ export function logEthYieldUpdate(payload = {}, source = "stake") {
 export function logFirstHistoryRecord(payload = {}, source = "dashboard") {
   return appendCheckpointEvent(
     EVENT_TYPES.FIRST_HISTORY_RECORD_CONFIRMED,
+    payload,
+    source,
+  );
+}
+
+/* =========================
+   Event log helpers - product layer
+========================= */
+
+// AI
+export function logAiJobCreated(payload = {}, source = "ai") {
+  return appendCheckpointEvent(EVENT_TYPES.AI_JOB_CREATED, payload, source);
+}
+
+export function logAiAnalysisStarted(payload = {}, source = "ai") {
+  return appendCheckpointEvent(
+    EVENT_TYPES.AI_ANALYSIS_STARTED,
+    payload,
+    source,
+  );
+}
+
+export function logAiAnalysisCompleted(payload = {}, source = "ai") {
+  return appendCheckpointEvent(
+    EVENT_TYPES.AI_ANALYSIS_COMPLETED,
+    payload,
+    source,
+  );
+}
+
+export function logAiReplyGenerated(payload = {}, source = "ai") {
+  return appendCheckpointEvent(EVENT_TYPES.AI_REPLY_GENERATED, payload, source);
+}
+
+export function logAiAlertGenerated(payload = {}, source = "ai") {
+  return appendCheckpointEvent(EVENT_TYPES.AI_ALERT_GENERATED, payload, source);
+}
+
+// Control
+export function logUserApprovalRequested(payload = {}, source = "control") {
+  return appendCheckpointEvent(
+    EVENT_TYPES.USER_APPROVAL_REQUESTED,
+    payload,
+    source,
+  );
+}
+
+export function logUserApproved(payload = {}, source = "control") {
+  return appendCheckpointEvent(EVENT_TYPES.USER_APPROVED, payload, source);
+}
+
+export function logUserRejected(payload = {}, source = "control") {
+  return appendCheckpointEvent(EVENT_TYPES.USER_REJECTED, payload, source);
+}
+
+export function logActionBlocked(payload = {}, source = "control") {
+  return appendCheckpointEvent(EVENT_TYPES.ACTION_BLOCKED, payload, source);
+}
+
+export function logActionExecuted(payload = {}, source = "control") {
+  return appendCheckpointEvent(EVENT_TYPES.ACTION_EXECUTED, payload, source);
+}
+
+// Finance
+export function logExpenseParsed(payload = {}, source = "finance") {
+  return appendCheckpointEvent(EVENT_TYPES.EXPENSE_PARSED, payload, source);
+}
+
+export function logExpenseSaved(payload = {}, source = "finance") {
+  return appendCheckpointEvent(EVENT_TYPES.EXPENSE_SAVED, payload, source);
+}
+
+export function logReminderScheduled(payload = {}, source = "finance") {
+  return appendCheckpointEvent(EVENT_TYPES.REMINDER_SCHEDULED, payload, source);
+}
+
+export function logBudgetAlertGenerated(payload = {}, source = "finance") {
+  return appendCheckpointEvent(
+    EVENT_TYPES.BUDGET_ALERT_GENERATED,
+    payload,
+    source,
+  );
+}
+
+// Physical / device
+export function logPhysicalConfirmRequested(payload = {}, source = "device") {
+  return appendCheckpointEvent(
+    EVENT_TYPES.PHYSICAL_CONFIRM_REQUESTED,
+    payload,
+    source,
+  );
+}
+
+export function logPhysicalConfirmReceived(payload = {}, source = "device") {
+  return appendCheckpointEvent(
+    EVENT_TYPES.PHYSICAL_CONFIRM_RECEIVED,
+    payload,
+    source,
+  );
+}
+
+export function logPhysicalConfirmFailed(payload = {}, source = "device") {
+  return appendCheckpointEvent(
+    EVENT_TYPES.PHYSICAL_CONFIRM_FAILED,
     payload,
     source,
   );
