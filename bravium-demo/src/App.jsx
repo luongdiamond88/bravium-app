@@ -7,6 +7,10 @@ import Stake from "./pages/Stake";
 import AI from "./components/AIAssistant";
 import PowerOn from "./pages/PowerOn";
 import { useTheme } from "./context/ThemeContext";
+import InvestorLogViewer from "./pages/InvestorLogViewer";
+import ScamAlert from "./pages/ScamAlert";
+import FixedExpenses from "./pages/FixedExpenses";
+import CapitalGuard from "./pages/CapitalGuard";
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -19,6 +23,10 @@ const AnimatedRoutes = () => {
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/stake" element={<Stake />} />
         <Route path="/ai" element={<AI />} />
+        <Route path="/investor-log" element={<InvestorLogViewer />} />
+        <Route path="/scam-alert" element={<ScamAlert />} />
+        <Route path="/fixed-expenses" element={<FixedExpenses />} />
+        <Route path="/capital-guard" element={<CapitalGuard />} />
       </Routes>
     </AnimatePresence>
   );

@@ -25,6 +25,7 @@ import {
   logPhysicalConfirmRequested,
   logPhysicalConfirmReceived,
   logPhysicalConfirmFailed,
+  getCurrentSession,
 } from "../config/checkpoints";
 
 function speak(text) {
@@ -228,6 +229,60 @@ export default function Dashboard() {
   const handleStake = () => {
     speak("Switching to staking protocol. Preparing to earn ETH.");
     navigate("/stake");
+  };
+
+  const handleOpenScamAlert = () => {
+    const currentSessionId = getCurrentSession()?.sessionId || "";
+    const currentUserId = "user_demo_1";
+
+    const params = new URLSearchParams();
+
+    if (currentSessionId) {
+      params.set("sessionId", currentSessionId);
+    }
+
+    if (currentUserId) {
+      params.set("userId", currentUserId);
+    }
+
+    const query = params.toString();
+    navigate(query ? `/scam-alert?${query}` : "/scam-alert");
+  };
+
+  const handleOpenFixedExpenses = () => {
+    const currentSessionId = getCurrentSession()?.sessionId || "";
+    const currentUserId = "user_demo_1";
+
+    const params = new URLSearchParams();
+
+    if (currentSessionId) {
+      params.set("sessionId", currentSessionId);
+    }
+
+    if (currentUserId) {
+      params.set("userId", currentUserId);
+    }
+
+    const query = params.toString();
+    navigate(query ? `/fixed-expenses?${query}` : "/fixed-expenses");
+  };
+
+  const handleOpenCapitalGuard = () => {
+    const currentSessionId = getCurrentSession()?.sessionId || "";
+    const currentUserId = "user_demo_1";
+
+    const params = new URLSearchParams();
+
+    if (currentSessionId) {
+      params.set("sessionId", currentSessionId);
+    }
+
+    if (currentUserId) {
+      params.set("userId", currentUserId);
+    }
+
+    const query = params.toString();
+    navigate(query ? `/capital-guard?${query}` : "/capital-guard");
   };
 
   const runEarnMoreBrcFlow = () => {
@@ -532,6 +587,29 @@ export default function Dashboard() {
             </motion.button>
           </>
         )}
+      </div>
+
+      <div className="mt-4 z-10">
+        <button
+          onClick={handleOpenScamAlert}
+          className="rounded-2xl border border-[#a4f4d9]/20 bg-black/30 px-6 py-3 text-sm font-semibold text-[#a4f4d9] transition hover:bg-white/5"
+        >
+          🛡 Scam Alert
+        </button>
+
+        <button
+          onClick={handleOpenFixedExpenses}
+          className="rounded-2xl border border-[#a4f4d9]/20 bg-black/30 px-6 py-3 text-sm font-semibold text-[#a4f4d9] transition hover:bg-white/5"
+        >
+          💸 Fixed Expenses
+        </button>
+
+        <button
+          onClick={handleOpenCapitalGuard}
+          className="rounded-2xl border border-[#a4f4d9]/20 bg-black/30 px-6 py-3 text-sm font-semibold text-[#a4f4d9] transition hover:bg-white/5"
+        >
+          🛡 Capital Guard
+        </button>
       </div>
 
       <ConnectionBridgeFX
