@@ -40,11 +40,15 @@ export default defineConfig({
   ],
   base: "./",
   server: {
-    host: "0.0.0.0", // Cho phép truy cập từ ngoài
-    port: 5173, // Cổng mặc định
-    strictPort: false, // ✅ Cho phép tự chọn port khác nếu bị trùng
-    allowedHosts: [".replit.dev", ".repl.co"],
-    historyApiFallback: true,
+    host: "0.0.0.0",
+    port: 5173,
+    strictPort: true,
+    allowedHosts: [
+      ".replit.dev",
+      ".repl.co",
+      ".sisko.replit.dev",
+      "05362102-e1bb-4d2b-8195-a5eb6408b844-00-37p8jvcb1etbu.sisko.replit.dev",
+    ],
   },
   preview: {
     host: "0.0.0.0",
