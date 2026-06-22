@@ -1,7 +1,9 @@
 node_modules/
+backend/node_modules/
 dist/
 .DS_Store
 .env
+*.env
 # Replit stuff (không cần trên GitHub)
 .replit
 replit.nix

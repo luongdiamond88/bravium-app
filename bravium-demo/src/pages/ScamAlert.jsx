@@ -8,13 +8,22 @@ function normalizeScamAlertResult(data) {
   const output = data?.output || {};
   const content = output?.content || {};
 
-  const redFlags = Array.isArray(content.redFlags)
-    ? content.redFlags
-    : Array.isArray(content.matchedSignals)
-      ? content.matchedSignals
-      : [];
+  const redFlags = Array.isArray(content.red_flags)
+    ? content.red_flags
+    : Array.isArray(content.redFlags)
+      ? content.redFlags
+      : Array.isArray(content.matchedSignals)
+        ? content.matchedSignals
+        : [];
 
-  const riskLevel = String(content.riskLevel || "unknown").toLowerCase();
+  const riskLevel = String(
+    content.risk_level || content.riskLevel || "unknown",
+  ).toLowerCase();
+
+  const needsUserAttention =
+    typeof content.needs_user_attention === "boolean"
+      ? content.needs_user_attention
+      : riskLevel === "high" || riskLevel === "medium";
 
   return {
     jobId: data?.jobId || "",
@@ -22,14 +31,19 @@ function normalizeScamAlertResult(data) {
     summary: content.summary || "No summary returned.",
     redFlags,
     riskLevel,
+    confidence: content.confidence || "unknown",
     recommendedAction:
+      content.recommended_action ||
       content.recommendedAction ||
       content.recommendation ||
       "No recommendation returned.",
+    needsUserAttention,
     requiresApproval:
       typeof content.requiresApproval === "boolean"
         ? content.requiresApproval
-        : riskLevel === "high",
+        : needsUserAttention,
+    analysisProvider:
+      content.analysis_provider || content.analysisProvider || "unknown",
     rawContent: content,
   };
 }
@@ -287,6 +301,13 @@ export default function ScamAlert() {
               </div>
             </div>
 
+            {result.needsUserAttention && (
+              <div className="mt-4 rounded-2xl border border-yellow-500/20 bg-yellow-500/10 p-4 text-sm text-yellow-200">
+                This result needs user attention before any sensitive next
+                action.
+              </div>
+            )}
+
             <div className="mt-4 rounded-2xl border border-zinc-800 bg-black/20 p-4">
               <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">
                 Red Flags
@@ -379,7 +400,7 @@ export default function ScamAlert() {
               <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">
                 Meta
               </p>
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div className="mt-3 grid gap-3 md:grid-cols-4">
                 <div>
                   <p className="text-xs text-zinc-500">Job ID</p>
                   <p className="mt-1 break-all text-sm text-zinc-200">
@@ -390,6 +411,19 @@ export default function ScamAlert() {
                   <p className="text-xs text-zinc-500">Output ID</p>
                   <p className="mt-1 break-all text-sm text-zinc-200">
                     {result.outputId || "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500">Confidence</p>
+                  <p className="mt-1 text-sm text-zinc-200">
+                    {result.confidence || "-"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-zinc-500">Provider</p>
+                  <p className="mt-1 text-sm text-zinc-200">
+                    {result.analysisProvider || "-"}
                   </p>
                 </div>
               </div>

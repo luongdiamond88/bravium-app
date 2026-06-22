@@ -11,6 +11,12 @@ import {
   markAiJobFailed,
   markAiJobRunning,
 } from "./ai.repo";
+import {
+  analyzeScamAlertWithApi,
+  withScamAlertAliases,
+} from "../../lib/aiOrchestrator";
+import { classifyScamAlertRoute } from "./scamAlertRouter";
+import type { ScamAlertRouteDecision } from "./scamAlertTypes";
 
 function buildReplyOutput(input: AiReplyInput) {
   const message = input.message.trim();
@@ -22,78 +28,6 @@ function buildReplyOutput(input: AiReplyInput) {
     confidence: "medium",
     requiresApproval: true,
     contextKeys: Object.keys(input.context || {}),
-  };
-}
-
-function buildScamAlertOutput(input: AiScamAlertInput) {
-  const inputType = String(input.input?.inputType || "unknown");
-  const rawInput = String(input.input?.rawInput || "");
-  const raw = rawInput.toLowerCase();
-
-  const detectedFlags: string[] = [];
-
-  if (raw.includes("seed phrase") || raw.includes("recovery phrase")) {
-    detectedFlags.push("Requests seed phrase or recovery phrase");
-  }
-
-  if (raw.includes("private key")) {
-    detectedFlags.push("Requests private key");
-  }
-
-  if (
-    raw.includes("urgent") ||
-    raw.includes("immediately") ||
-    raw.includes("now")
-  ) {
-    detectedFlags.push("Uses urgency language");
-  }
-
-  if (
-    raw.includes("claim reward") ||
-    raw.includes("airdrop") ||
-    raw.includes("guaranteed profit")
-  ) {
-    detectedFlags.push("Promises reward or guaranteed profit");
-  }
-
-  if (raw.includes("verify wallet") || raw.includes("wallet connect")) {
-    detectedFlags.push("Requests wallet verification or wallet connection");
-  }
-
-  if (raw.includes("send first")) {
-    detectedFlags.push("Asks user to send funds first");
-  }
-
-  const riskLevel =
-    detectedFlags.length >= 3
-      ? "high"
-      : detectedFlags.length >= 1
-        ? "medium"
-        : "low";
-
-  const requiresApproval = riskLevel === "high";
-
-  const summary =
-    riskLevel === "high"
-      ? `High-risk scam indicators detected in submitted ${inputType}.`
-      : riskLevel === "medium"
-        ? `Potential scam indicators detected in submitted ${inputType}.`
-        : `No major scam indicators detected in submitted ${inputType}.`;
-
-  const recommendedAction =
-    riskLevel === "high"
-      ? "Block sensitive next actions and require user approval before continuing."
-      : riskLevel === "medium"
-        ? "Warn the user and review details carefully before taking action."
-        : "Proceed with normal caution and continue monitoring.";
-
-  return {
-    summary,
-    redFlags: detectedFlags,
-    riskLevel,
-    recommendedAction,
-    requiresApproval,
-    inputType,
   };
 }
 
@@ -392,12 +326,184 @@ export async function aiReplyService(input: AiReplyInput) {
   }
 }
 
+function getScamRawInput(input: AiScamAlertInput) {
+  return String(input.input?.rawInput || "");
+}
+
+function getScamInputType(input: AiScamAlertInput) {
+  return String(input.input?.inputType || "text");
+}
+
+function sanitizeScamAlertInputForStorage(
+  input: AiScamAlertInput,
+  routeDecision: ScamAlertRouteDecision,
+): AiScamAlertInput {
+  if (!routeDecision.shouldRedact) {
+    return input;
+  }
+
+  return {
+    ...input,
+    input: {
+      ...input.input,
+      rawInput: "[REDACTED_SENSITIVE_INPUT]",
+    },
+  };
+}
+
+function buildBasicRuleOutput(
+  input: AiScamAlertInput,
+  routeDecision: ScamAlertRouteDecision,
+) {
+  const inputType = getScamInputType(input);
+  const isSensitive = routeDecision.sensitiveInputDetected;
+  const redFlags = routeDecision.matchedRules.map((rule) => rule.label);
+
+  if (isSensitive) {
+    return withScamAlertAliases({
+      summary: "High-risk wallet security issue detected.",
+      red_flags:
+        redFlags.length > 0
+          ? redFlags
+          : ["Seed phrase/recovery phrase/private key related input detected"],
+      risk_level: "high",
+      confidence: "high",
+      input_type: inputType,
+      analysis_provider: "basic_rule",
+      attempted_provider: null,
+      fallback_used: false,
+      failure_reason: null,
+      recommended_action:
+        "Never share your seed phrase, recovery phrase, private key, password, or OTP. Bravium blocked this before sending it to AI analysis.",
+      needs_user_attention: true,
+    });
+  }
+
+  if (
+    routeDecision.matchedRules.some((rule) => rule.id === "crypto_education")
+  ) {
+    return withScamAlertAliases({
+      summary: "General crypto education question detected.",
+      red_flags: [],
+      risk_level: "low",
+      confidence: "high",
+      input_type: inputType,
+      analysis_provider: "basic_rule",
+      attempted_provider: null,
+      fallback_used: false,
+      failure_reason: null,
+      recommended_action:
+        "This looks like a general educational question. No scam action is detected in v1.",
+      needs_user_attention: false,
+    });
+  }
+
+  return withScamAlertAliases({
+    summary:
+      routeDecision.riskLevel === "high"
+        ? "High-risk scam pattern detected by Bravium Basic Rule Engine."
+        : routeDecision.riskLevel === "medium"
+          ? "Potential scam pattern detected by Bravium Basic Rule Engine."
+          : "No major scam pattern detected by Bravium Basic Rule Engine.",
+    red_flags: redFlags,
+    risk_level: routeDecision.riskLevel,
+    confidence: redFlags.length > 0 ? "high" : "low",
+    input_type: inputType,
+    analysis_provider: "basic_rule",
+    attempted_provider: null,
+    fallback_used: false,
+    failure_reason: null,
+    recommended_action:
+      routeDecision.riskLevel === "high"
+        ? "Pause before taking action. Bravium recommends user review before any wallet connection, payment, or sensitive step."
+        : routeDecision.riskLevel === "medium"
+          ? "Review carefully before continuing. Do not approve sensitive actions without checking the details."
+          : "Proceed with normal caution and continue monitoring.",
+    needs_user_attention: routeDecision.riskLevel !== "low",
+  });
+}
+
+function buildNotVerifiedOutput(
+  input: AiScamAlertInput,
+  routeDecision: ScamAlertRouteDecision,
+) {
+  const inputType = getScamInputType(input);
+
+  return withScamAlertAliases({
+    summary: "Data verification required. Not verified in this version.",
+    red_flags: routeDecision.matchedRules.map((rule) => rule.label),
+    risk_level: "medium",
+    confidence: "high",
+    input_type: inputType,
+    analysis_provider: "not_verified",
+    attempted_provider: null,
+    fallback_used: false,
+    failure_reason: null,
+    recommended_action:
+      "This requires a real contract/domain/security checker. Bravium v1 will not let AI guess. Network/chain or checker integration is required before making a conclusion.",
+    needs_user_attention: true,
+  });
+}
+
+async function buildScamAlertOutput(input: AiScamAlertInput) {
+  const routeDecision = classifyScamAlertRoute(input);
+
+  if (routeDecision.route === "BASIC_RULE_ONLY") {
+    return {
+      routeDecision,
+      analysisResult: {
+        content: buildBasicRuleOutput(input, routeDecision),
+        providerRequested: null,
+        providerUsed: "basic_rule",
+        fallbackUsed: false,
+        failureReason: null,
+      },
+    };
+  }
+
+  if (routeDecision.route === "DATA_CHECK_REQUIRED") {
+    return {
+      routeDecision,
+      analysisResult: {
+        content: buildNotVerifiedOutput(input, routeDecision),
+        providerRequested: null,
+        providerUsed: "not_verified",
+        fallbackUsed: false,
+        failureReason: null,
+      },
+    };
+  }
+
+  if (routeDecision.shouldCallAi) {
+    const analysisResult = await analyzeScamAlertWithApi(input);
+
+    return {
+      routeDecision,
+      analysisResult,
+    };
+  }
+
+  return {
+    routeDecision,
+    analysisResult: {
+      content: buildBasicRuleOutput(input, routeDecision),
+      providerRequested: null,
+      providerUsed: "basic_rule",
+      fallbackUsed: false,
+      failureReason: null,
+    },
+  };
+}
+
 export async function aiScamAlertService(input: AiScamAlertInput) {
+  const routeDecision = classifyScamAlertRoute(input);
+  const sanitizedInput = sanitizeScamAlertInputForStorage(input, routeDecision);
+
   const job = await createAiJob({
     userId: input.userId,
     sessionId: input.sessionId,
-    type: AiJobType.SCAM_ALERT,
-    input,
+    type: "SCAM_ALERT",
+    input: sanitizedInput,
   });
 
   await createAiEventLog({
@@ -408,13 +514,54 @@ export async function aiScamAlertService(input: AiScamAlertInput) {
     correlationId: job.id,
     payload: {
       jobId: job.id,
-      jobType: "scam_alert",
+      jobType: "SCAM_ALERT",
+      inputType: getScamInputType(input),
+      rawInputSaved: !routeDecision.shouldRedact,
+      sensitiveInputDetected: routeDecision.sensitiveInputDetected,
+      sensitiveType: routeDecision.sensitiveType,
     },
   });
 
-  try {
-    await markAiJobRunning(job.id);
+  await createAiEventLog({
+    userId: input.userId,
+    sessionId: input.sessionId,
+    type: "ai_scam_route_classified",
+    source: "ai.scam-alert.router",
+    correlationId: job.id,
+    payload: {
+      jobId: job.id,
+      route: routeDecision.route,
+      shouldCallAi: routeDecision.shouldCallAi,
+      shouldRedact: routeDecision.shouldRedact,
+      riskLevel: routeDecision.riskLevel,
+      reason: routeDecision.reason,
+      matchedRules: routeDecision.matchedRules,
+      sensitiveInputDetected: routeDecision.sensitiveInputDetected,
+      sensitiveType: routeDecision.sensitiveType,
+      rawInputSaved: !routeDecision.shouldRedact,
+    },
+  });
 
+  if (routeDecision.sensitiveInputDetected) {
+    await createAiEventLog({
+      userId: input.userId,
+      sessionId: input.sessionId,
+      type: "ai_scam_sensitive_input_blocked",
+      source: "ai.scam-alert.router",
+      correlationId: job.id,
+      payload: {
+        jobId: job.id,
+        sensitive_input_detected: true,
+        sensitive_type: routeDecision.sensitiveType,
+        raw_input_saved: false,
+        external_ai_called: false,
+      },
+    });
+  }
+
+  const shouldEmitAiStarted = routeDecision.shouldCallAi;
+
+  if (shouldEmitAiStarted) {
     await createAiEventLog({
       userId: input.userId,
       sessionId: input.sessionId,
@@ -423,21 +570,73 @@ export async function aiScamAlertService(input: AiScamAlertInput) {
       correlationId: job.id,
       payload: {
         jobId: job.id,
-        jobType: "scam_alert",
+        inputType: getScamInputType(input),
+        route: routeDecision.route,
       },
     });
+  }
 
-    const outputContent = buildScamAlertOutput(input);
+  const { analysisResult } = await buildScamAlertOutput(input);
+  const outputContent = analysisResult.content;
 
-    const output = await createAiOutput({
-      jobId: job.id,
+  if (!routeDecision.shouldCallAi) {
+    await createAiEventLog({
       userId: input.userId,
-      outputType: AiOutputType.ALERT,
-      content: outputContent,
+      sessionId: input.sessionId,
+      type: "ai_scam_basic_rule_used",
+      source: "ai.scam-alert.rule-engine",
+      correlationId: job.id,
+      payload: {
+        jobId: job.id,
+        route: routeDecision.route,
+        analysisProvider: outputContent.analysis_provider,
+        attemptedProvider: outputContent.attempted_provider,
+        fallbackUsed: outputContent.fallback_used,
+        riskLevel: outputContent.risk_level,
+        matchedRules: routeDecision.matchedRules,
+      },
     });
+  }
 
-    await markAiJobCompleted(job.id);
+  if (routeDecision.shouldCallAi && analysisResult.failureReason) {
+    await createAiEventLog({
+      userId: input.userId,
+      sessionId: input.sessionId,
+      type: "ai_analysis_failed",
+      source: "ai.scam-alert",
+      correlationId: job.id,
+      payload: {
+        jobId: job.id,
+        providerRequested: analysisResult.providerRequested,
+        failureReason: analysisResult.failureReason,
+      },
+    });
+  }
 
+  if (routeDecision.shouldCallAi && analysisResult.fallbackUsed) {
+    await createAiEventLog({
+      userId: input.userId,
+      sessionId: input.sessionId,
+      type: "ai_fallback_used",
+      source: "ai.scam-alert",
+      correlationId: job.id,
+      payload: {
+        jobId: job.id,
+        providerRequested: analysisResult.providerRequested,
+        providerUsed: analysisResult.providerUsed,
+        fallbackProvider: "rule_fallback",
+      },
+    });
+  }
+
+  const output = await createAiOutput({
+    jobId: job.id,
+    userId: input.userId,
+    outputType: "ALERT",
+    content: outputContent as any,
+  });
+
+  if (routeDecision.shouldCallAi && !analysisResult.fallbackUsed) {
     await createAiEventLog({
       userId: input.userId,
       sessionId: input.sessionId,
@@ -446,32 +645,40 @@ export async function aiScamAlertService(input: AiScamAlertInput) {
       correlationId: job.id,
       payload: {
         jobId: job.id,
-        outputId: output.id,
+        providerRequested: analysisResult.providerRequested,
+        providerUsed: analysisResult.providerUsed,
+        fallbackUsed: analysisResult.fallbackUsed,
+        route: routeDecision.route,
       },
     });
-
-    await createAiEventLog({
-      userId: input.userId,
-      sessionId: input.sessionId,
-      type: "ai_alert_generated",
-      source: "ai.scam-alert",
-      correlationId: job.id,
-      payload: {
-        jobId: job.id,
-        outputId: output.id,
-        inputType: outputContent.inputType,
-        riskLevel: outputContent.riskLevel,
-        redFlagCount: outputContent.redFlags.length,
-        requiresApproval: outputContent.requiresApproval,
-      },
-    });
-
-    return { jobId: job.id, output };
-  } catch (error) {
-    await markAiJobFailed(
-      job.id,
-      error instanceof Error ? error.message : "Unknown scam alert error",
-    );
-    throw error;
   }
+
+  await createAiEventLog({
+    userId: input.userId,
+    sessionId: input.sessionId,
+    type: "ai_alert_generated",
+    source: "ai.scam-alert",
+    correlationId: job.id,
+    payload: {
+      jobId: job.id,
+      outputId: output.id,
+      inputType: outputContent.input_type,
+      route: routeDecision.route,
+      riskLevel: outputContent.risk_level,
+      confidence: outputContent.confidence,
+      redFlagCount: outputContent.red_flags.length,
+      needsUserAttention: outputContent.needs_user_attention,
+      requiresApproval: outputContent.requiresApproval,
+      analysisProvider: outputContent.analysis_provider,
+      attemptedProvider: outputContent.attempted_provider,
+      fallbackUsed: outputContent.fallback_used,
+      failureReason: outputContent.failure_reason,
+      rawInputSaved: !routeDecision.shouldRedact,
+    },
+  });
+
+  return {
+    jobId: job.id,
+    output,
+  };
 }
