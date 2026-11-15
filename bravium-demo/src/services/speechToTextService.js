@@ -56,11 +56,67 @@ export function createSpeechToTextService({
   let cancelled = false;
   let transcribing = false;
 
+  let transcribingTimeout = null;
+  let endReported = false;
+
+  function clearTranscribingTimeout() {
+    if (transcribingTimeout !== null) {
+      clearTimeout(transcribingTimeout);
+      transcribingTimeout = null;
+    }
+  }
+
+  function finish() {
+    if (endReported) return;
+
+    endReported = true;
+    clearTranscribingTimeout();
+
+    onEnd?.();
+  }
+
+  function reportFailure(code) {
+    if (completed || failed || cancelled) return;
+
+    failed = true;
+    clearTranscribingTimeout();
+
+    onFailed?.(code);
+  }
+
   function reportTranscribing() {
     if (transcribing || completed || failed || cancelled) return;
 
     transcribing = true;
     onTranscribing?.();
+
+    // Prevent Android Chrome from waiting indefinitely.
+    transcribingTimeout = setTimeout(() => {
+      if (completed || failed || cancelled) return;
+
+      reportFailure("recognition_timeout");
+
+      try {
+        recognition.abort();
+      } catch {
+        // Recognition may already be disconnected.
+      }
+
+      finish();
+    }, 10000);
+  }
+
+  function stopRecognition() {
+    if (completed || failed || cancelled || transcribing) return;
+
+    reportTranscribing();
+
+    try {
+      recognition.stop();
+    } catch {
+      reportFailure("stop_failed");
+      finish();
+    }
   }
 
   recognition.onstart = () => {
@@ -72,8 +128,7 @@ export function createSpeechToTextService({
   recognition.onspeechend = () => {
     if (cancelled) return;
 
-    reportTranscribing();
-    recognition.stop();
+    stopRecognition();
   };
 
   recognition.onresult = (event) => {
@@ -90,23 +145,21 @@ export function createSpeechToTextService({
     reportTranscribing();
     completed = true;
 
+    clearTranscribingTimeout();
+
     onCompleted?.(transcript);
   };
 
   recognition.onerror = (event) => {
-    if (cancelled || completed || failed) return;
-
-    failed = true;
-    onFailed?.(event.error || "recognition_error");
+    reportFailure(event.error || "recognition_error");
   };
 
   recognition.onend = () => {
     if (!cancelled && !completed && !failed) {
-      failed = true;
-      onFailed?.("no_speech");
+      reportFailure("no_speech");
     }
 
-    onEnd?.();
+    finish();
   };
 
   return {
@@ -115,15 +168,22 @@ export function createSpeechToTextService({
     },
 
     stop() {
-      if (completed || failed || cancelled) return;
-
-      reportTranscribing();
-      recognition.stop();
+      stopRecognition();
     },
 
     cancel() {
+      if (cancelled) return;
+
       cancelled = true;
-      recognition.abort();
+      clearTranscribingTimeout();
+
+      try {
+        recognition.abort();
+      } catch {
+        // Ignore cleanup failures.
+      }
+
+      finish();
     },
   };
 }

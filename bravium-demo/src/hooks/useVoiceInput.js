@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+  import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   createSpeechToTextService,
@@ -12,6 +12,11 @@ const ERROR_MESSAGES = {
   "no-speech": "No speech was detected. Please try again.",
   no_speech: "No speech was detected. Please try again.",
   network: "Speech recognition network error.",
+  recognition_timeout:
+    "Speech recognition timed out. Please retry or type your request.",
+
+  stop_failed:
+    "Could not stop speech recognition. Please retry.",
   "language-not-supported": "Selected language is not supported.",
   aborted: "Speech recognition was interrupted.",
 };
