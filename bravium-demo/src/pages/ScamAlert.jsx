@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { requestScamAlertApproval, submitScamAlert } from "../lib/scamAlertApi";
 import ControlAssistantPanel from "../components/ControlAssistantPanel";
 import AskBraviumCommunityPanel from "../components/AskBraviumCommunityPanel";
@@ -63,6 +63,7 @@ function riskClass(riskLevel) {
 
 export default function ScamAlert() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const querySessionId = searchParams.get("sessionId") || "";
   const queryUserId = searchParams.get("userId") || "";
 
@@ -81,6 +82,34 @@ export default function ScamAlert() {
   const [approvalActionType, setApprovalActionType] = useState("");
 
   const [result, setResult] = useState(null);
+
+  function handleOpenWalletGuidance() {
+    const params = new URLSearchParams();
+
+    if (userId?.trim()) {
+      params.set("userId", userId.trim());
+    }
+
+    if (sessionId?.trim()) {
+      params.set("sessionId", sessionId.trim());
+    }
+
+    params.set("source", "scam_alert");
+
+    if (result?.riskLevel) {
+      params.set("riskLevel", result.riskLevel);
+    }
+
+    if (result?.summary) {
+      params.set("scamAlertSummary", result.summary);
+    }
+
+    if (Array.isArray(result?.redFlags)) {
+      params.set("redFlags", JSON.stringify(result.redFlags));
+    }
+
+    navigate(`/wallet-guidance?${params.toString()}`);
+  }
 
   useEffect(() => {
     if (querySessionId) {
@@ -448,6 +477,27 @@ export default function ScamAlert() {
               sessionId={sessionId.trim()}
               scamAlertResult={result}
             />
+            {result && (
+              <div className="mt-6 rounded-2xl border border-[#a4f4d9]/20 bg-black/30 p-6">
+                <p className="text-xs uppercase tracking-[0.25em] text-[#7ceee0]">
+                  Wallet Safety
+                </p>
+                <h2 className="mt-2 text-xl font-semibold text-white">
+                  Reduce risk with a 3-wallet setup
+                </h2>
+                <p className="mt-2 text-sm text-zinc-300">
+                  Bravium can explain how to separate your Vault Wallet,
+                  Interaction Wallet, and Testing Wallet after this Scam Alert.
+                </p>
+
+                <button
+                  onClick={handleOpenWalletGuidance}
+                  className="mt-4 rounded-xl bg-[#a4f4d9] px-5 py-3 text-sm font-semibold text-black hover:opacity-90"
+                >
+                  Open 3-Wallet Safety Guide
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

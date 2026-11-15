@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { runCapitalGuardCheck } from "../lib/capitalGuardApi";
 
 function statusClass(status) {
@@ -17,12 +17,18 @@ function statusClass(status) {
 
 export default function CapitalGuard() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const queryUserId = searchParams.get("userId") || "";
   const querySessionId = searchParams.get("sessionId") || "";
+  // In-memory router state keeps personal finance text out of URLs and logs.
+  const queryText =
+    typeof location.state?.investmentText === "string"
+      ? location.state.investmentText
+      : "";
 
   const [userId, setUserId] = useState(queryUserId || "user_demo_1");
   const [sessionId, setSessionId] = useState(querySessionId);
-  const [text, setText] = useState("buy 300 usdt btc now?");
+  const [text, setText] = useState(queryText || "buy 300 usdt btc now?");
   const [availableBalance, setAvailableBalance] = useState("1000");
   const [accountCurrency, setAccountCurrency] = useState("USDT");
   const [safetyBuffer, setSafetyBuffer] = useState("100");
@@ -40,7 +46,11 @@ export default function CapitalGuard() {
     if (querySessionId) {
       setSessionId(querySessionId);
     }
-  }, [queryUserId, querySessionId]);
+
+    if (queryText) {
+      setText(queryText);
+    }
+  }, [queryUserId, querySessionId, queryText]);
 
   async function handleCheck() {
     if (!userId.trim()) {
@@ -97,6 +107,12 @@ export default function CapitalGuard() {
             Before investing, the system checks upcoming fixed obligations and
             safety buffer. Human still makes the final decision.
           </p>
+          {queryText && (
+            <p className="mt-2 text-sm text-yellow-300">
+              Request received from Ask Bravium. Review the balance, safety
+              buffer and timeframe before pressing Run Capital Guard.
+            </p>
+          )}
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <div>

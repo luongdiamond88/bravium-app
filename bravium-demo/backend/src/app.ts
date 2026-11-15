@@ -13,6 +13,7 @@ import { notificationsRoutes } from "./modules/notifications/notifications.route
 import { budgetRoutes } from "./modules/budget/budget.routes";
 import { capitalGuardRoutes } from "./modules/capital-guard/capitalGuard.routes";
 import { communityRoutes } from "./modules/community/community.routes";
+import { walletGuidanceRoutes } from "./modules/wallet-guidance/walletGuidance.routes";
 
 export async function buildApp() {
   const app = Fastify({
@@ -83,6 +84,7 @@ export async function buildApp() {
   await app.register(budgetRoutes);
   await app.register(capitalGuardRoutes);
   await app.register(communityRoutes);
+  await app.register(walletGuidanceRoutes);
 
   return app;
 }

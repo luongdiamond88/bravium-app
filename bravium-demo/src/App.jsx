@@ -11,6 +11,7 @@ import InvestorLogViewer from "./pages/InvestorLogViewer";
 import ScamAlert from "./pages/ScamAlert";
 import FixedExpenses from "./pages/FixedExpenses";
 import CapitalGuard from "./pages/CapitalGuard";
+import WalletSplitGuidance from "./pages/WalletSplitGuidance";
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -27,6 +28,7 @@ const AnimatedRoutes = () => {
         <Route path="/scam-alert" element={<ScamAlert />} />
         <Route path="/fixed-expenses" element={<FixedExpenses />} />
         <Route path="/capital-guard" element={<CapitalGuard />} />
+        <Route path="/wallet-guidance" element={<WalletSplitGuidance />} />
       </Routes>
     </AnimatePresence>
   );
