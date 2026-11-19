@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bravium Microphone Test</title>
+
+    <style>
+      body {
+        background: #101820;
+        color: #a4f4d9;
+        font-family: Arial, sans-serif;
+        padding: 30px;
+        text-align: center;
+      }
+
+      button {
+        background: #a4f4d9;
+        color: #101820;
+        border: none;
+        border-radius: 12px;
+        padding: 18px 25px;
+        font-size: 18px;
+        margin: 25px 0;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+      }
+
+      pre {
+        background: #1c2932;
+        padding: 20px;
+        border-radius: 12px;
+        text-align: left;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>BRAVIUM — MICROPHONE TEST</h2>
+
+    <p>Press the button and speak continuously for 5 seconds.</p>
+
+    <button id="testButton">Test Microphone</button>
+
+    <pre id="result">Ready to test.</pre>
+
+    <script>
+      const button = document.getElementById("testButton");
+      const output = document.getElementById("result");
+
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+
+        let stream = null;
+        let audioContext = null;
+
+        try {
+          if (!navigator.mediaDevices?.getUserMedia) {
+            output.textContent = "capture=no\nerror=getUserMedia_unsupported";
+            return;
+          }
+
+          const AudioContextClass =
+            window.AudioContext || window.webkitAudioContext;
+
+          if (AudioContextClass) {
+            audioContext = new AudioContextClass();
+
+            if (audioContext.state === "suspended") {
+              audioContext.resume().catch(() => {});
+            }
+          }
+
+          output.textContent = "Requesting microphone permission...";
+
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: false,
+          });
+
+          output.textContent =
+            "capture=yes\nTesting audio...\nPlease speak for 5 seconds.";
+
+          if (!audioContext) {
+            output.textContent =
+              "capture=yes\nsound=unknown\nreason=AudioContext unsupported";
+            return;
+          }
+
+          if (audioContext.state === "suspended") {
+            audioContext.resume().catch(() => {});
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
+
+          if (audioContext.state !== "running") {
+            output.textContent =
+              "capture=yes\nsound=unknown\nreason=AudioContext not running";
+            return;
+          }
+
+          const analyser = audioContext.createAnalyser();
+          analyser.fftSize = 1024;
+
+          const source = audioContext.createMediaStreamSource(stream);
+          source.connect(analyser);
+
+          const data = new Uint8Array(analyser.fftSize);
+
+          let maxLevel = 0;
+
+          for (let i = 0; i < 50; i++) {
+            analyser.getByteTimeDomainData(data);
+
+            for (const value of data) {
+              const level = Math.abs(value - 128);
+
+              if (level > maxLevel) {
+                maxLevel = level;
+              }
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+
+          output.textContent =
+            "capture=yes\n" +
+            "sound=" +
+            (maxLevel >= 4 ? "yes" : "no") +
+            "\n" +
+            "level=" +
+            maxLevel;
+        } catch (error) {
+          output.textContent =
+            "capture=" +
+            (stream ? "yes" : "no") +
+            "\n" +
+            "sound=unknown\n" +
+            "error=" +
+            (error.name || "unknown") +
+            "\n" +
+            "message=" +
+            (error.message || "");
+        } finally {
+          if (stream) {
+            stream.getTracks().forEach((track) => track.stop());
+          }
+
+          if (audioContext) {
+            try {
+              await audioContext.close();
+            } catch {}
+          }
+
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
