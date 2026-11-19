@@ -56,8 +56,17 @@ export function createSpeechToTextService({
   let cancelled = false;
   let transcribing = false;
 
-  let transcribingTimeout = null;
-  let endReported = false;
+  let audioStarted = false;
+  let speechDetected = false;
+
+  // Diagnostic events only. No audio is stored.
+  recognition.onaudiostart = () => {
+    audioStarted = true;
+  };
+
+  recognition.onspeechstart = () => {
+    speechDetected = true;
+  };
 
   function clearTranscribingTimeout() {
     if (transcribingTimeout !== null) {
@@ -94,7 +103,9 @@ export function createSpeechToTextService({
     transcribingTimeout = setTimeout(() => {
       if (completed || failed || cancelled) return;
 
-      reportFailure("recognition_timeout");
+      reportFailure(
+        `recognition_timeout|audio=${audioStarted ? "yes" : "no"}|speech=${speechDetected ? "yes" : "no"}`,
+      );
 
       try {
         recognition.abort();

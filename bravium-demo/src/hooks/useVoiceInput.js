@@ -1,4 +1,4 @@
-  import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   createSpeechToTextService,
@@ -15,8 +15,7 @@ const ERROR_MESSAGES = {
   recognition_timeout:
     "Speech recognition timed out. Please retry or type your request.",
 
-  stop_failed:
-    "Could not stop speech recognition. Please retry.",
+  stop_failed: "Could not stop speech recognition. Please retry.",
   "language-not-supported": "Selected language is not supported.",
   aborted: "Speech recognition was interrupted.",
 };
@@ -42,10 +41,14 @@ export function useVoiceInput({ lang = "vi-VN", onTranscript, onEvent }) {
     (code) => {
       const safeCode = String(code || "recognition_error");
 
+      const [errorKey, ...diagnostics] = safeCode.split("|");
+
       setStatus("error");
+
       setError(
-        ERROR_MESSAGES[safeCode] ||
-          "Speech recognition failed. Please type instead.",
+        (ERROR_MESSAGES[errorKey] ||
+          "Speech recognition failed. Please type instead.") +
+          (diagnostics.length ? ` [${diagnostics.join(", ")}]` : ""),
       );
 
       emit("voice_input_failed", {
