@@ -56,6 +56,10 @@ export function createSpeechToTextService({
   let cancelled = false;
   let transcribing = false;
 
+  // Fix A — Timeout and cleanup
+  let transcribingTimeout = null;
+  let endReported = false;
+
   let audioStarted = false;
   let speechDetected = false;
 
