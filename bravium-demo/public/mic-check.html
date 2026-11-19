@@ -159,5 +159,132 @@
         }
       });
     </script>
+    <hr style="margin-top: 30px" />
+
+    <h3>P03.6 — Speech Track Test</h3>
+
+    <p>Press the button and say: Hello Bravium</p>
+
+    <button id="speechTrackButton">Test Speech Recognition</button>
+
+    <pre id="speechTrackResult">Ready.</pre>
+
+    <script>
+      const speechButton = document.getElementById("speechTrackButton");
+      const speechOutput = document.getElementById("speechTrackResult");
+
+      speechButton.addEventListener("click", async () => {
+        speechButton.disabled = true;
+
+        let stream = null;
+        let recognition = null;
+        let timeout = null;
+        let finished = false;
+
+        let started = false;
+        let audioStarted = false;
+        let speechDetected = false;
+
+        function finish(message) {
+          if (finished) return;
+          finished = true;
+
+          clearTimeout(timeout);
+
+          speechOutput.textContent =
+            message +
+            "\n" +
+            "start=" +
+            (started ? "yes" : "no") +
+            "\n" +
+            "audio=" +
+            (audioStarted ? "yes" : "no") +
+            "\n" +
+            "speech=" +
+            (speechDetected ? "yes" : "no");
+
+          try {
+            recognition?.abort();
+          } catch {}
+
+          stream?.getTracks().forEach((track) => track.stop());
+
+          speechButton.disabled = false;
+        }
+
+        try {
+          speechOutput.textContent = "Opening microphone...";
+
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+
+          const Recognition =
+            window.SpeechRecognition || window.webkitSpeechRecognition;
+
+          if (!Recognition) {
+            finish("recognition=unsupported");
+            return;
+          }
+
+          recognition = new Recognition();
+
+          recognition.lang = "en-US";
+          recognition.continuous = false;
+          recognition.interimResults = false;
+
+          recognition.onstart = () => {
+            started = true;
+            speechOutput.textContent = "Listening...";
+          };
+
+          recognition.onaudiostart = () => {
+            audioStarted = true;
+          };
+
+          recognition.onspeechstart = () => {
+            speechDetected = true;
+          };
+
+          recognition.onspeechend = () => {
+            try {
+              recognition.stop();
+            } catch {}
+          };
+
+          recognition.onresult = (event) => {
+            const transcript = Array.from(event.results)
+              .map((result) => result[0]?.transcript || "")
+              .join(" ")
+              .trim();
+
+            finish("transcript=" + transcript);
+          };
+
+          recognition.onerror = (event) => {
+            finish("error=" + event.error);
+          };
+
+          recognition.onend = () => {
+            finish("ended_without_transcript");
+          };
+
+          const audioTrack = stream.getAudioTracks()[0];
+
+          recognition.start(audioTrack);
+
+          timeout = setTimeout(() => {
+            finish("recognition_timeout");
+          }, 12000);
+        } catch (error) {
+          finish(
+            "error=" +
+              (error.name || "unknown") +
+              "\nmessage=" +
+              (error.message || ""),
+          );
+        }
+      });
+    </script>
   </body>
 </html>
